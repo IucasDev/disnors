@@ -281,7 +281,7 @@ else:
     # Imagem
     try:
         img_bytes = extrair_imagem(PDF_PATH, pagina, DPI)
-        st.image(img_bytes,width=700)
+        st.image(img_bytes,width=900)
     except Exception as e:
         st.error(
             f"⚠️ Não foi possível carregar a imagem.\n\n"
