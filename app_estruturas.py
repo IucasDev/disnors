@@ -8,6 +8,8 @@ Sistema: poppler-utils (packages.txt)
 """
 
 import io, subprocess, tempfile, os, glob
+import pdfplumber
+import re
 import streamlit as st
 from PIL import Image
 
@@ -301,3 +303,35 @@ with col2:
     st.info("📝 Notas serão adicionadas em breve.")
 
 st.caption(f"Página {pagina} do arquivo PDF combinado.")
+def extrair_dados_pdf(pdf_path, pagina):
+    with pdfplumber.open(pdf_path) as pdf:
+        page = pdf.pages[pagina - 1]
+        texto = page.extract_text()
+
+        # -------------------------
+        # EXTRAIR NOTAS
+        # -------------------------
+        notas = []
+        if texto:
+            if "Notas" in texto:
+                bloco_notas = texto.split("Notas")[-1]
+
+                linhas = bloco_notas.split("\n")
+                for linha in linhas:
+                    linha = linha.strip()
+                    if linha and not linha.lower().startswith("página"):
+                        notas.append(linha)
+
+        # -------------------------
+        # EXTRAIR TABELAS (MATERIAIS)
+        # -------------------------
+        tabelas = page.extract_tables()
+
+        materiais = []
+        if tabelas:
+            for tabela in tabelas:
+                for row in tabela:
+                    if row and len(row) >= 3:
+                        materiais.append(row[:3])
+
+        return materiais, notas
