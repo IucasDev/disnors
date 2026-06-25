@@ -278,23 +278,26 @@ else:
     )
     st.write("")
 
-    # Imagem
+    # Layout em duas colunas
+col1, col2 = st.columns([2.5, 1])
+
+# Coluna da esquerda (Imagem)
+with col1:
     try:
         img_bytes = extrair_imagem(PDF_PATH, pagina, DPI)
-        st.image(img_bytes,width=900)
+        st.image(img_bytes, use_container_width=True)
     except Exception as e:
         st.error(
             f"⚠️ Não foi possível carregar a imagem.\n\n"
             f"Verifique se o arquivo `{PDF_PATH}` está na mesma pasta.\n\nErro: {e}"
         )
 
-    st.divider()
-
-    # Placeholder para materiais futuros
+# Coluna da direita (Materiais e Notas)
+with col2:
     st.markdown("### 📋 Relação de Materiais")
     st.info("🔧 Tabela de materiais será adicionada em breve.")
 
     st.markdown("### 📌 Notas")
     st.info("📝 Notas serão adicionadas em breve.")
 
-    st.caption(f"Página {pagina} do arquivo PDF combinado.")
+st.caption(f"Página {pagina} do arquivo PDF combinado.")
