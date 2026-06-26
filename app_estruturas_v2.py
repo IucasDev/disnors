@@ -184,25 +184,31 @@ NOTAS_ESTRUTURAS = {
 # ─────────────────────────────────────────────────────────────────
 @st.cache_data(show_spinner="Carregando desenho...")
 def extrair_imagem(pdf_path: str, pagina: int, dpi: int = 150) -> bytes:
-    with tempfile.TemporaryDirectory() as tmpdir:
-        prefix = os.path.join(tmpdir, "pag")
-        subprocess.run(
-            ["pdftoppm", "-jpeg", "-r", str(dpi),
-             "-f", str(pagina), "-l", str(pagina),
-             pdf_path, prefix],
-            check=True, capture_output=True,
-        )
-        arquivos = sorted(glob.glob(f"{prefix}-*.jpg"))
-        if not arquivos:
-            raise FileNotFoundError("pdftoppm não gerou imagem.")
-        img = Image.open(arquivos[0])
+    """Extrai a imagem da página especificada do PDF e devolve bytes PNG."""
+    try:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            prefix = os.path.join(tmpdir, "pag")
+            subprocess.run(
+                ["pdftoppm", "-jpeg", "-r", str(dpi),
+                 "-f", str(pagina), "-l", str(pagina),
+                 pdf_path, prefix],
+                check=True, capture_output=True,
+            )
+            arquivos = sorted(glob.glob(f"{prefix}-*.jpg"))
+            if not arquivos:
+                raise FileNotFoundError("pdftoppm não gerou imagem.")
+            img = Image.open(arquivos[0])
  
-    w, h = img.size
-    # Cortar cabeçalho (13% do topo)
-    img = img.crop((0, int(h * 0.13), w, h))
-    buf = io.BytesIO()
-    img.save(buf, format="PNG")
-    return buf.getvalue()
+        w, h = img.size
+        # Cortar cabeçalho (13% do topo)
+        img = img.crop((0, int(h * 0.13), w, h))
+        buf = io.BytesIO()
+        img.save(buf, format="PNG")
+        return buf.getvalue()
+    
+    except Exception as e:
+        st.error(f"⚠️ Não foi possível gerar a imagem da estrutura. Verifique se o PDF está acessível e se o comando **pdftoppm** está instalado. Detalhe: {e}")
+        return None
 
 def extrair_notas_dinamicamente(pdf_path, pagina_inicio):
     """Tenta extrair notas do PDF próximo à página da estrutura."""
