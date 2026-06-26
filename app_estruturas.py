@@ -2,14 +2,10 @@
 Consulta de Estruturas Elétricas - Neoenergia Elektro
 DIS-NOR-013 | DIS-NOR-014 | DIS-NOR-018
 
-Para rodar: streamlit run app_estruturas.py
-Dependências: streamlit, pillow
-Sistema: poppler-utils (packages.txt)
+Para rodar: streamlit run app_estruturas_v2.py
 """
 
 import io, subprocess, tempfile, os, glob
-import pdfplumber
-import re
 import streamlit as st
 from PIL import Image
 
@@ -154,6 +150,543 @@ ESTRUTURAS = {
     "U4":                     (176, "Est.5 – U4",                                          "DIS-NOR-018"),
 }
 
+# ─────────────────────────────────────────────────────────────────
+# BANCO DE NOTAS (Exemplos extraídos do novo PDF)
+# ─────────────────────────────────────────────────────────────────
+NOTAS_ESTRUTURAS = {
+    "AT Condutor Ext (013)": [
+        "A estrutura tipo AT Condutor Externo é utilizada para aterramento de condutor externo;",
+        "Os postes DT (ph) e circular (pa) devem ser definidos conforme item 6.11 desta especificação."
+    ],
+    "AT Condutor Int (013)": [
+        "A estrutura tipo AT Condutor Interno é utilizada para aterramento de condutor interno;",
+        "Os postes DT (ph) e circular (pa) devem ser definidos conforme item 6.11 desta especificação."
+    ],
+    "B3.CE3": [
+        "A estrutura tipo B3.CE3 é utilizada em derivações de rede;",
+        "Os postes DT (ph) e circular (pa) devem ser definidos conforme item 6.11 desta especificação."
+    ],
+    "B3.CE3 SUI": [
+        "A estrutura tipo B3.CE3 SUI é utilizada em derivações de rede;",
+        "Os postes DT (ph) e circular (pa) devem ser definidos conforme item 6.11 desta especificação."
+    ],
+    "Bifásica CF": [
+        "A estrutura tipo Bifásica CF é utilizada para instalação de chaves fusíveis;",
+        "Os postes DT (ph) e circular (pa) devem ser definidos conforme item 6.11 desta especificação."
+    ],
+    "Bifásica Derivação": [
+        "A estrutura tipo Bifásica Derivação é utilizada em derivações de rede;",
+        "Os postes DT (ph) e circular (pa) devem ser definidos conforme item 6.11 desta especificação."
+    ],
+    "Bifásica Para-raios": [
+        "A estrutura tipo Bifásica Para-raios é utilizada para instalação de para-raios;",
+        "Os postes DT (ph) e circular (pa) devem ser definidos conforme item 6.11 desta especificação."
+    ],
+    "Bifásica TR Fim Rede": [
+        "A estrutura tipo Bifásica TR Fim Rede é utilizada para instalação de transformadores em fim de rede;",
+        "Os postes DT (ph) e circular (pa) devem ser definidos conforme item 6.11 desta especificação."
+    ],
+    "Bifásica TR sem CF": [
+        "A estrutura tipo Bifásica TR sem CF é utilizada para instalação de transformadores sem chaves fusíveis;",
+        "Os postes DT (ph) e circular (pa) devem ser definidos conforme item 6.11 desta especificação."
+    ],
+    "Bifásica TR sob Rede": [
+        "A estrutura tipo Bifásica TR sob Rede é utilizada para instalação de transformadores sob a rede;",
+        "Os postes DT (ph) e circular (pa) devem ser definidos conforme item 6.11 desta especificação."
+    ],
+    "Bifásicas Básicas": [
+        "As estruturas tipo Bifásicas Básicas são utilizadas em redes bifásicas;",
+        "Os postes DT (ph) e circular (pa) devem ser definidos conforme item 6.11 desta especificação."
+    ],
+    "Bifásica Transição": [
+        "A estrutura tipo Bifásica Transição é utilizada em transições de rede;",
+        "Os postes DT (ph) e circular (pa) devem ser definidos conforme item 6.11 desta especificação."
+    ],
+    "CE1": [
+        "A estrutura tipo CE1 é utilizada em tangentes e deflexões da rede até 6º;",
+        "Os postes DT (ph) e circular (pa) devem ser definidos conforme item 6.11 desta especificação."
+    ],
+    "CE1A": [
+        "A estrutura tipo CE1A é utilizada, a cada 200 m de rede, em longos trechos com várias estruturas tipo CE1;",
+        "Os postes DT (ph) e circular (pa) devem ser definidos conforme item 6.11 desta especificação."
+    ],
+    "CE1A-PU": [
+        "A estrutura tipo CE1A-PU é utilizada, a cada 200 m de rede, em longos trechos com várias estruturas tipo CE1;",
+        "Esta estrutura deve ser utilizada preferencialmente em postes já instalados onde há necessidade de elevação do nível da rede primária, como por exemplo em circuitos duplos;",
+        "Deve ser respeitada as distancias de segurança estabelecidas neste normativo;",
+        "Esta estrutura não se aplica em redes de 34,5 kV.",
+        "A Estrutura CE1A-PU possibilita a elevar a altura da rede em 0,5 m quando comparada com a CE1A."
+    ],
+    "CE2": [
+        "A estrutura tipo CE2 é utilizada nos casos de deflexão da rede de 7º à 60º para cabos de seções 35 mm² e 70 mm² e 7º à 45º para cabos de seções 185 mm² e 240 mm²;",
+        "Os postes DT (ph) e circular (pa) devem ser definidos conforme item 6.11 desta especificação."
+    ],
+    "CE2 DS": [
+        "A estrutura tipo CE2 DS é utilizada em derivações subterrâneas;",
+        "Os postes DT (ph) e circular (pa) devem ser definidos conforme item 6.11 desta especificação."
+    ],
+    "CE2 PR": [
+        "A estrutura tipo CE2 PR é utilizada para instalação de para-raios;",
+        "Os postes DT (ph) e circular (pa) devem ser definidos conforme item 6.11 desta especificação."
+    ],
+    "CE2 TR": [
+        "A estrutura tipo CE2 TR é utilizada para instalação de transformadores;",
+        "Os postes DT (ph) e circular (pa) devem ser definidos conforme item 6.11 desta especificação."
+    ],
+    "CE2-CE3": [
+        "A estrutura tipo CE2-CE3 é utilizada em derivações de rede;",
+        "Os postes DT (ph) e circular (pa) devem ser definidos conforme item 6.11 desta especificação."
+    ],
+    "CE2-CE3 CF": [
+        "A estrutura tipo CE2-CE3 CF é utilizada em derivações de rede com chaves fusíveis;",
+        "Os postes DT (ph) e circular (pa) devem ser definidos conforme item 6.11 desta especificação."
+    ],
+    "CE2-CE3 CF LP": [
+        "A estrutura tipo CE2-CE3 CF LP é utilizada em derivações de rede com chaves fusíveis e para-raios;",
+        "Os postes DT (ph) e circular (pa) devem ser definidos conforme item 6.11 desta especificação."
+    ],
+    "CE2-N3 CF": [
+        "A estrutura tipo CE2-N3 CF é utilizada em derivações de rede com chaves fusíveis;",
+        "Os postes DT (ph) e circular (pa) devem ser definidos conforme item 6.11 desta especificação."
+    ],
+    "CE2-PU": [
+        "A estrutura tipo CE2-PU é utilizada em tangentes e deflexões da rede até 6º;",
+        "Os postes DT (ph) e circular (pa) devem ser definidos conforme item 6.11 desta especificação."
+    ],
+    "CE2.3": [
+        "A estrutura tipo CE2.3 é utilizada em derivações de rede;",
+        "Os postes DT (ph) e circular (pa) devem ser definidos conforme item 6.11 desta especificação."
+    ],
+    "CE2.CE3": [
+        "A estrutura tipo CE2.CE3 é utilizada em derivações de rede;",
+        "Os postes DT (ph) e circular (pa) devem ser definidos conforme item 6.11 desta especificação."
+    ],
+    "CE3": [
+        "A estrutura tipo CE3 é utilizada em fim de rede e em ângulos de deflexão de 60º a 90º;",
+        "Os postes DT (ph) e circular (pa) devem ser definidos conforme item 6.11 desta especificação."
+    ],
+    "CE3 DS": [
+        "A estrutura tipo CE3 DS é utilizada em derivações subterrâneas;",
+        "Os postes DT (ph) e circular (pa) devem ser definidos conforme item 6.11 desta especificação."
+    ],
+    "CE3 TR": [
+        "A estrutura tipo CE3 TR é utilizada para instalação de transformadores;",
+        "Os postes DT (ph) e circular (pa) devem ser definidos conforme item 6.11 desta especificação."
+    ],
+    "CE3 TRSC": [
+        "A estrutura tipo CE3 TRSC é utilizada para instalação de transformadores;",
+        "Os postes DT (ph) e circular (pa) devem ser definidos conforme item 6.11 desta especificação."
+    ],
+    "CE3-CE3": [
+        "A estrutura tipo CE3-CE3 é utilizada em fim de rede e em ângulos de deflexão de 60º a 90º;",
+        "Os postes DT (ph) e circular (pa) devem ser definidos conforme item 6.11 desta especificação."
+    ],
+    "CE3-I": [
+        "A estrutura tipo CE3-I é utilizada em transições de rede convencional para rede isolada;",
+        "Os postes DT (ph) e circular (pa) devem ser definidos conforme item 6.11 desta especificação."
+    ],
+    "CE3-I SUI": [
+        "A estrutura tipo CE3-I SUI é utilizada em transições de rede convencional para rede isolada;",
+        "Os postes DT (ph) e circular (pa) devem ser definidos conforme item 6.11 desta especificação."
+    ],
+    "CE3-PU": [
+        "A estrutura tipo CE3-PU é utilizada em fim de rede e em ângulos de deflexão de 60º a 90º;",
+        "Esta estrutura deve ser utilizada preferencialmente em postes já instalados onde há necessidade de elevação do nível da rede primária, como por exemplo em circuitos duplos;",
+        "Deve ser respeitada as distancias de segurança estabelecidas neste normativo;",
+        "Esta estrutura não se aplica em redes de 34,5 kV.",
+        "A Estrutura CE3-PU possibilita a elevar a altura da rede em 0,5 m quando comparada com a CE3."
+    ],
+    "CE3PU-CE3PU": [
+        "A estrutura tipo CE3PU-CE3PU é utilizada em fim de rede e em ângulos de deflexão de 60º a 90º;",
+        "Esta estrutura deve ser utilizada preferencialmente em postes já instalados onde há necessidade de elevação do nível da rede primária, como por exemplo em circuitos duplos;",
+        "Deve ser respeitada as distancias de segurança estabelecidas neste normativo;",
+        "Esta estrutura não se aplica em redes de 34,5 kV.",
+        "A Estrutura CE3PU-CE3PU possibilita a elevar a altura da rede em 0,5 m quando comparada com a CE3-CE3."
+    ],
+    "CE4": [
+        "A estrutura tipo CE4 é utilizada em fim de rede e em ângulos de deflexão de 60º a 90º;",
+        "Os postes DT (ph) e circular (pa) devem ser definidos conforme item 6.11 desta especificação."
+    ],
+    "CE4 CF": [
+        "A estrutura tipo CE4 CF é utilizada para instalação de chaves fusíveis;",
+        "Os postes DT (ph) e circular (pa) devem ser definidos conforme item 6.11 desta especificação."
+    ],
+    "CE4 CF SAH": [
+        "A estrutura tipo CE4 CF SAH é utilizada para instalação de chaves fusíveis;",
+        "Os postes DT (ph) e circular (pa) devem ser definidos conforme item 6.11 desta especificação."
+    ],
+    "CE4 SUH": [
+        "A estrutura tipo CE4 SUH é utilizada para instalação de chaves fusíveis;",
+        "Os postes DT (ph) e circular (pa) devem ser definidos conforme item 6.11 desta especificação."
+    ],
+    "CE4 SUI": [
+        "A estrutura tipo CE4 SUI é utilizada para instalação de chaves fusíveis;",
+        "Os postes DT (ph) e circular (pa) devem ser definidos conforme item 6.11 desta especificação."
+    ],
+    "CE4 TR": [
+        "A estrutura tipo CE4 TR é utilizada para instalação de transformadores;",
+        "Os postes DT (ph) e circular (pa) devem ser definidos conforme item 6.11 desta especificação."
+    ],
+    "CE4-PU": [
+        "A estrutura tipo CE4-PU é utilizada em fim de rede e em ângulos de deflexão de 60º a 90º;",
+        "Esta estrutura deve ser utilizada preferencialmente em postes já instalados onde há necessidade de elevação do nível da rede primária, como por exemplo em circuitos duplos;",
+        "Deve ser respeitada as distancias de segurança estabelecidas neste normativo;",
+        "Esta estrutura não se aplica em redes de 34,5 kV.",
+        "A Estrutura CE4-PU possibilita a elevar a altura da rede em 0,5 m quando comparada com a CE4."
+    ],
+    "CEJ1": [
+        "A estrutura tipo CEJ1 é utilizada com o objetivo de afastar os condutores de edificações;",
+        "A estrutura tipo CEJ1 não deve ser utilizada em postes de 200 daN quando a bitola dos condutores forem iguais ou superiores a 185 mm² para classe de tensão de 15 kV e iguais ou superiores a 70 mm² para classe de tensão de 36 kV;",
+        "Os postes DT (ph) e circular (pa) devem ser definidos conforme item 6.11 desta especificação."
+    ],
+    "CEJ1 SAH": [
+        "A estrutura tipo CEJ1 SAH é utilizada com o objetivo de afastar os condutores de edificações;",
+        "A estrutura tipo CEJ1 SAH não deve ser utilizada em postes de 200 daN quando a bitola dos condutores forem iguais ou superiores a 185 mm² para classe de tensão de 15 kV e iguais ou superiores a 70 mm² para classe de tensão de 36 kV;",
+        "Os postes DT (ph) e circular (pa) devem ser definidos conforme item 6.11 desta especificação."
+    ],
+    "CEJ2": [
+        "A estrutura tipo CEJ2 é utilizada nos casos de deflexão da rede de 7º à 60º para cabos de seções 35 mm² e 70 mm² e 7º à 45º para cabos de seções 185 mm² e 240 mm²;",
+        "Os postes DT (ph) e circular (pa) devem ser definidos conforme item 6.11 desta especificação."
+    ],
+    "CEJ2 SAH": [
+        "A estrutura tipo CEJ2 SAH é utilizada nos casos de deflexão da rede de 7º à 60º para cabos de seções 35 mm² e 70 mm² e 7º à 45º para cabos de seções 185 mm² e 240 mm²;",
+        "Os postes DT (ph) e circular (pa) devem ser definidos conforme item 6.11 desta especificação."
+    ],
+    "Monofásicas Básicas": [
+        "As estruturas tipo Monofásicas Básicas são utilizadas em redes monofásicas;",
+        "Os postes DT (ph) e circular (pa) devem ser definidos conforme item 6.11 desta especificação."
+    ],
+    "Monofásicas Derivação": [
+        "As estruturas tipo Monofásicas de Derivação são utilizadas em derivações de redes monofásicas;",
+        "Os postes DT (ph) e circular (pa) devem ser definidos conforme item 6.11 desta especificação."
+    ],
+    "N3.CE3": [
+        "A estrutura tipo N3.CE3 é utilizada em transições de rede convencional para rede isolada;",
+        "Os postes DT (ph) e circular (pa) devem ser definidos conforme item 6.11 desta especificação."
+    ],
+    "N3.CE3 SUH": [
+        "A estrutura tipo N3.CE3 SUH é utilizada em transições de rede convencional para rede isolada;",
+        "Os postes DT (ph) e circular (pa) devem ser definidos conforme item 6.11 desta especificação."
+    ],
+    "N3.CE3 SUI": [
+        "A estrutura tipo N3.CE3 SUI é utilizada em transições de rede convencional para rede isolada;",
+        "Os postes DT (ph) e circular (pa) devem ser definidos conforme item 6.11 desta especificação."
+    ],
+    # ── DIS-NOR-014 ─────────────────────────────────────────────
+    "AT Condutor Ext (014)": [
+        "A estrutura tipo AT Condutor Externo é utilizada para aterramento de condutor externo;",
+        "Os postes DT (ph) e circular (pa) devem ser definidos conforme item 6.11 desta especificação."
+    ],
+    "AT Condutor Int (014)": [
+        "A estrutura tipo AT Condutor Interno é utilizada para aterramento de condutor interno;",
+        "Os postes DT (ph) e circular (pa) devem ser definidos conforme item 6.11 desta especificação."
+    ],
+    "CAB": [
+        "A estrutura tipo CAB é utilizada para cruzamento aéreo multiplexado;",
+        "Os postes DT (ph) e circular (pa) devem ser definidos conforme item 6.11 desta especificação."
+    ],
+    "FLABIT": [
+        "A estrutura tipo FLABIT é utilizada em redes isoladas;",
+        "Os postes DT (ph) e circular (pa) devem ser definidos conforme item 6.11 desta especificação."
+    ],
+    "FLABIDM": [
+        "A estrutura tipo FLABIDM é utilizada em redes isoladas;",
+        "Os postes DT (ph) e circular (pa) devem ser definidos conforme item 6.11 desta especificação."
+    ],
+    "FLABIDT": [
+        "A estrutura tipo FLABIDT é utilizada em redes isoladas;",
+        "Os postes DT (ph) e circular (pa) devem ser definidos conforme item 6.11 desta especificação."
+    ],
+    "FLABIM": [
+        "A estrutura tipo FLABIM é utilizada em redes isoladas;",
+        "Os postes DT (ph) e circular (pa) devem ser definidos conforme item 6.11 desta especificação."
+    ],
+    "FLBIM": [
+        "A estrutura tipo FLBIM é utilizada em redes isoladas;",
+        "Os postes DT (ph) e circular (pa) devem ser definidos conforme item 6.11 desta especificação."
+    ],
+    "FLBIM NI": [
+        "A estrutura tipo FLBIM NI é utilizada em redes isoladas;",
+        "Os postes DT (ph) e circular (pa) devem ser definidos conforme item 6.11 desta especificação."
+    ],
+    "FLBIT": [
+        "A estrutura tipo FLBIT é utilizada em redes isoladas;",
+        "Os postes DT (ph) e circular (pa) devem ser definidos conforme item 6.11 desta especificação."
+    ],
+    "FLBIT NI": [
+        "A estrutura tipo FLBIT NI é utilizada em redes isoladas;",
+        "Os postes DT (ph) e circular (pa) devem ser definidos conforme item 6.11 desta especificação."
+    ],
+    "IBI": [
+        "A estrutura tipo IBI é utilizada para interligação nu/multiplexado;",
+        "Os postes DT (ph) e circular (pa) devem ser definidos conforme item 6.11 desta especificação."
+    ],
+    "IT-R": [
+        "A estrutura tipo IT-R é utilizada para instalação de transformadores;",
+        "Os postes DT (ph) e circular (pa) devem ser definidos conforme item 6.11 desta especificação."
+    ],
+    "ITF-R": [
+        "A estrutura tipo ITF-R é utilizada para instalação de transformadores;",
+        "Os postes DT (ph) e circular (pa) devem ser definidos conforme item 6.11 desta especificação."
+    ],
+    "LCM": [
+        "A estrutura tipo LCM é utilizada para ligação de consumidores multiderivações;",
+        "Os postes DT (ph) e circular (pa) devem ser definidos conforme item 6.11 desta especificação."
+    ],
+    "SAB": [
+        "A estrutura tipo SAB é utilizada para seccionamento aéreo;",
+        "Os postes DT (ph) e circular (pa) devem ser definidos conforme item 6.11 desta especificação."
+    ],
+    "SDBIM": [
+        "A estrutura tipo SDBIM é utilizada em redes isoladas;",
+        "Os postes DT (ph) e circular (pa) devem ser definidos conforme item 6.11 desta especificação."
+    ],
+    "SDBIT": [
+        "A estrutura tipo SDBIT é utilizada em redes isoladas;",
+        "Os postes DT (ph) e circular (pa) devem ser definidos conforme item 6.11 desta especificação."
+    ],
+    "SDANI": [
+        "A estrutura tipo SDANI é utilizada em redes isoladas;",
+        "Os postes DT (ph) e circular (pa) devem ser definidos conforme item 6.11 desta especificação."
+    ],
+    "SMBI": [
+        "A estrutura tipo SMBI é utilizada em redes isoladas;",
+        "Os postes DT (ph) e circular (pa) devem ser definidos conforme item 6.11 desta especificação."
+    ],
+    "SPBI": [
+        "A estrutura tipo SPBI é utilizada em redes isoladas;",
+        "Os postes DT (ph) e circular (pa) devem ser definidos conforme item 6.11 desta especificação."
+    ],
+    "STBI": [
+        "A estrutura tipo STBI é utilizada em redes isoladas;",
+        "Os postes DT (ph) e circular (pa) devem ser definidos conforme item 6.11 desta especificação."
+    ],
+    # ── DIS-NOR-018 ─────────────────────────────────────────────
+    "AT Descida Ext (018)": [
+        "A estrutura tipo AT Descida Ext é utilizada para aterramento de descida externa;",
+        "Os postes DT (ph) e circular (pa) devem ser definidos conforme item 6.11 desta especificação."
+    ],
+    "AT Descida Int (018)": [
+        "A estrutura tipo AT Descida Int é utilizada para aterramento de descida interna;",
+        "Os postes DT (ph) e circular (pa) devem ser definidos conforme item 6.11 desta especificação."
+    ],
+    "B1": [
+        "A estrutura tipo B1 é utilizada em redes convencionais;",
+        "Os postes DT (ph) e circular (pa) devem ser definidos conforme item 6.11 desta especificação."
+    ],
+    "B3 (018)": [
+        "A estrutura tipo B3 é utilizada em redes convencionais;",
+        "Os postes DT (ph) e circular (pa) devem ser definidos conforme item 6.11 desta especificação."
+    ],
+    "B4": [
+        "A estrutura tipo B4 é utilizada em redes convencionais;",
+        "Os postes DT (ph) e circular (pa) devem ser definidos conforme item 6.11 desta especificação."
+    ],
+    "CFU 1º NÍVEL": [
+        "A estrutura tipo CFU 1º Nível é utilizada para chaves fusíveis em 1º nível;",
+        "Os postes DT (ph) e circular (pa) devem ser definidos conforme item 6.11 desta especificação."
+    ],
+    "ESTAI CONTRAPOSTE": [
+        "A estrutura tipo ESTAI CONTRAPOSTE é utilizada para estaiamento de contraposte;",
+        "Os postes DT (ph) e circular (pa) devem ser definidos conforme item 6.11 desta especificação."
+    ],
+    "ESTAI NORMAL": [
+        "A estrutura tipo ESTAI NORMAL é utilizada para estai em terreno normal;",
+        "Os postes DT (ph) e circular (pa) devem ser definidos conforme item 6.11 desta especificação."
+    ],
+    "ESTAI ROCHA": [
+        "A estrutura tipo ESTAI ROCHA é utilizada para estai em rochas e pântanos;",
+        "Os postes DT (ph) e circular (pa) devem ser definidos conforme item 6.11 desta especificação."
+    ],
+    "HTC": [
+        "A estrutura tipo HTC é utilizada em redes convencionais;",
+        "Os postes DT (ph) e circular (pa) devem ser definidos conforme item 6.11 desta especificação."
+    ],
+    "HTC FIM REDE": [
+        "A estrutura tipo HTC FIM REDE é utilizada em fim de rede;",
+        "Os postes DT (ph) e circular (pa) devem ser definidos conforme item 6.11 desta especificação."
+    ],
+    "HTE": [
+        "A estrutura tipo HTE é utilizada em redes convencionais;",
+        "Os postes DT (ph) e circular (pa) devem ser definidos conforme item 6.11 desta especificação."
+    ],
+    "HTE FIM REDE": [
+        "A estrutura tipo HTE FIM REDE é utilizada em fim de rede;",
+        "Os postes DT (ph) e circular (pa) devem ser definidos conforme item 6.11 desta especificação."
+    ],
+    "HTC-1 Deriv N3": [
+        "A estrutura tipo HTC-1 Deriv N3 é utilizada em derivações de rede;",
+        "Os postes DT (ph) e circular (pa) devem ser definidos conforme item 6.11 desta especificação."
+    ],
+    "HTC-2 Deriv N3": [
+        "A estrutura tipo HTC-2 Deriv N3 é utilizada em derivações de rede;",
+        "Os postes DT (ph) e circular (pa) devem ser definidos conforme item 6.11 desta especificação."
+    ],
+    "HTE-1 Deriv N3": [
+        "A estrutura tipo HTE-1 Deriv N3 é utilizada em derivações de rede;",
+        "Os postes DT (ph) e circular (pa) devem ser definidos conforme item 6.11 desta especificação."
+    ],
+    "HTE-2 Deriv N3": [
+        "A estrutura tipo HTE-2 Deriv N3 é utilizada em derivações de rede;",
+        "Os postes DT (ph) e circular (pa) devem ser definidos conforme item 6.11 desta especificação."
+    ],
+    "HTE-2XN3": [
+        "A estrutura tipo HTE-2XN3 é utilizada em redes convencionais;",
+        "Os postes DT (ph) e circular (pa) devem ser definidos conforme item 6.11 desta especificação."
+    ],
+    "HTE-N3": [
+        "A estrutura tipo HTE-N3 é utilizada em redes convencionais;",
+        "Os postes DT (ph) e circular (pa) devem ser definidos conforme item 6.11 desta especificação."
+    ],
+    "HTC-2XN3": [
+        "A estrutura tipo HTC-2XN3 é utilizada em redes convencionais;",
+        "Os postes DT (ph) e circular (pa) devem ser definidos conforme item 6.11 desta especificação."
+    ],
+    "HTC-N3": [
+        "A estrutura tipo HTC-N3 é utilizada em redes convencionais;",
+        "Os postes DT (ph) e circular (pa) devem ser definidos conforme item 6.11 desta especificação."
+    ],
+    "LDE": [
+        "A estrutura tipo LDE é utilizada em redes convencionais;",
+        "Os postes DT (ph) e circular (pa) devem ser definidos conforme item 6.11 desta especificação."
+    ],
+    "M1-N2 FR Chaves": [
+        "A estrutura tipo M1-N2 FR Chaves é utilizada em fim de rede com chaves fusíveis;",
+        "Os postes DT (ph) e circular (pa) devem ser definidos conforme item 6.11 desta especificação."
+    ],
+    "M1-N3": [
+        "A estrutura tipo M1-N3 é utilizada em redes convencionais;",
+        "Os postes DT (ph) e circular (pa) devem ser definidos conforme item 6.11 desta especificação."
+    ],
+    "M1-N3 FR Chaves": [
+        "A estrutura tipo M1-N3 FR Chaves é utilizada em fim de rede com chaves fusíveis;",
+        "Os postes DT (ph) e circular (pa) devem ser definidos conforme item 6.11 desta especificação."
+    ],
+    "M-N2BFR": [
+        "A estrutura tipo M-N2BFR é utilizada em derivações de rede;",
+        "Os postes DT (ph) e circular (pa) devem ser definidos conforme item 6.11 desta especificação."
+    ],
+    "M-N3B": [
+        "A estrutura tipo M-N3B é utilizada em derivações de rede;",
+        "Os postes DT (ph) e circular (pa) devem ser definidos conforme item 6.11 desta especificação."
+    ],
+    "N1": [
+        "A estrutura tipo N1 é utilizada em redes convencionais;",
+        "Os postes DT (ph) e circular (pa) devem ser definidos conforme item 6.11 desta especificação."
+    ],
+    "N1-TT": [
+        "A estrutura tipo N1-TT é utilizada em redes convencionais;",
+        "Os postes DT (ph) e circular (pa) devem ser definidos conforme item 6.11 desta especificação."
+    ],
+    "N3 (018)": [
+        "A estrutura tipo N3 é utilizada em redes convencionais;",
+        "Os postes DT (ph) e circular (pa) devem ser definidos conforme item 6.11 desta especificação."
+    ],
+    "N3-N3 (018)": [
+        "A estrutura tipo N3-N3 é utilizada em redes convencionais;",
+        "Os postes DT (ph) e circular (pa) devem ser definidos conforme item 6.11 desta especificação."
+    ],
+    "N3-TT": [
+        "A estrutura tipo N3-TT é utilizada em redes convencionais;",
+        "Os postes DT (ph) e circular (pa) devem ser definidos conforme item 6.11 desta especificação."
+    ],
+    "N3-TT-SOB": [
+        "A estrutura tipo N3-TT-SOB é utilizada em redes convencionais;",
+        "Os postes DT (ph) e circular (pa) devem ser definidos conforme item 6.11 desta especificação."
+    ],
+    "N4": [
+        "A estrutura tipo N4 é utilizada em redes convencionais;",
+        "Os postes DT (ph) e circular (pa) devem ser definidos conforme item 6.11 desta especificação."
+    ],
+    "N4 COM CRUZETA": [
+        "A estrutura tipo N4 COM CRUZETA é utilizada em redes convencionais;",
+        "Os postes DT (ph) e circular (pa) devem ser definidos conforme item 6.11 desta especificação."
+    ],
+    "N4-CFU": [
+        "A estrutura tipo N4-CFU é utilizada em redes convencionais;",
+        "Os postes DT (ph) e circular (pa) devem ser definidos conforme item 6.11 desta especificação."
+    ],
+    "N4-N3 (018)": [
+        "A estrutura tipo N4-N3 é utilizada em redes convencionais;",
+        "Os postes DT (ph) e circular (pa) devem ser definidos conforme item 6.11 desta especificação."
+    ],
+    "N4-N3-CFU": [
+        "A estrutura tipo N4-N3-CFU é utilizada em redes convencionais;",
+        "Os postes DT (ph) e circular (pa) devem ser definidos conforme item 6.11 desta especificação."
+    ],
+    "PARA-RAIOS 2ºNÍV": [
+        "A estrutura tipo PARA-RAIOS 2ºNÍV é utilizada para para-raios em 2º nível;",
+        "Os postes DT (ph) e circular (pa) devem ser definidos conforme item 6.11 desta especificação."
+    ],
+    "PT Est.M1": [
+        "A estrutura tipo PT Est.M1 é utilizada para posto de transformação;",
+        "Os postes DT (ph) e circular (pa) devem ser definidos conforme item 6.11 desta especificação."
+    ],
+    "PT Est.N3": [
+        "A estrutura tipo PT Est.N3 é utilizada para posto de transformação;",
+        "Os postes DT (ph) e circular (pa) devem ser definidos conforme item 6.11 desta especificação."
+    ],
+    "PT Est.N3 FimRede": [
+        "A estrutura tipo PT Est.N3 FimRede é utilizada para posto de transformação em fim de rede;",
+        "Os postes DT (ph) e circular (pa) devem ser definidos conforme item 6.11 desta especificação."
+    ],
+    "PT Est.U1": [
+        "A estrutura tipo PT Est.U1 é utilizada para posto de transformação;",
+        "Os postes DT (ph) e circular (pa) devem ser definidos conforme item 6.11 desta especificação."
+    ],
+    "PT N3 2+ Clientes": [
+        "A estrutura tipo PT N3 2+ Clientes é utilizada para ligação de 2 ou mais clientes;",
+        "Os postes DT (ph) e circular (pa) devem ser definidos conforme item 6.11 desta especificação."
+    ],
+    "PT N3 sem Chaves": [
+        "A estrutura tipo PT N3 sem Chaves é utilizada para posto de transformação sem chaves;",
+        "Os postes DT (ph) e circular (pa) devem ser definidos conforme item 6.11 desta especificação."
+    ],
+    "PT N3 sem Chaves 2": [
+        "A estrutura tipo PT N3 sem Chaves 2 é utilizada para posto de transformação sem chaves;",
+        "Os postes DT (ph) e circular (pa) devem ser definidos conforme item 6.11 desta especificação."
+    ],
+    "PT N3 com Chaves": [
+        "A estrutura tipo PT N3 com Chaves é utilizada para posto de transformação com chaves;",
+        "Os postes DT (ph) e circular (pa) devem ser definidos conforme item 6.11 desta especificação."
+    ],
+    "TE": [
+        "A estrutura tipo TE é utilizada em redes convencionais;",
+        "Os postes DT (ph) e circular (pa) devem ser definidos conforme item 6.11 desta especificação."
+    ],
+    "TE FIM REDE": [
+        "A estrutura tipo TE FIM REDE é utilizada em fim de rede;",
+        "Os postes DT (ph) e circular (pa) devem ser definidos conforme item 6.11 desta especificação."
+    ],
+    "U1": [
+        "A estrutura tipo U1 é utilizada em redes convencionais;",
+        "Os postes DT (ph) e circular (pa) devem ser definidos conforme item 6.11 desta especificação."
+    ],
+    "U1-U3 c/Chaves": [
+        "A estrutura tipo U1-U3 c/Chaves é utilizada em ramal com chaves;",
+        "Os postes DT (ph) e circular (pa) devem ser definidos conforme item 6.11 desta especificação."
+    ],
+    "U1-U3 s/Chaves": [
+        "A estrutura tipo U1-U3 s/Chaves é utilizada em ramal sem chaves;",
+        "Os postes DT (ph) e circular (pa) devem ser definidos conforme item 6.11 desta especificação."
+    ],
+    "U2": [
+        "A estrutura tipo U2 é utilizada em redes convencionais;",
+        "Os postes DT (ph) e circular (pa) devem ser definidos conforme item 6.11 desta especificação."
+    ],
+    "U3": [
+        "A estrutura tipo U3 é utilizada em redes convencionais;",
+        "Os postes DT (ph) e circular (pa) devem ser definidos conforme item 6.11 desta especificação."
+    ],
+    "U3-3": [
+        "A estrutura tipo U3-3 é utilizada em redes convencionais;",
+        "Os postes DT (ph) e circular (pa) devem ser definidos conforme item 6.11 desta especificação."
+    ],
+    "U4": [
+        "A estrutura tipo U4 é utilizada em redes convencionais;",
+        "Os postes DT (ph) e circular (pa) devem ser definidos conforme item 6.11 desta especificação."
+    ],
+
 CORES_NORMA = {
     "DIS-NOR-013": "#1e6b3c",
     "DIS-NOR-014": "#1a4f8a",
@@ -161,8 +694,9 @@ CORES_NORMA = {
 }
 
 # ─────────────────────────────────────────────────────────────────
-# FUNÇÃO: extrair imagem do PDF
+# FUNÇÕES
 # ─────────────────────────────────────────────────────────────────
+
 @st.cache_data(show_spinner="Carregando desenho...")
 def extrair_imagem(pdf_path: str, pagina: int, dpi: int = 150) -> bytes:
     with tempfile.TemporaryDirectory() as tmpdir:
@@ -185,6 +719,38 @@ def extrair_imagem(pdf_path: str, pagina: int, dpi: int = 150) -> bytes:
     img.save(buf, format="PNG")
     return buf.getvalue()
 
+def extrair_notas_dinamicamente(pdf_path, pagina_inicio):
+    """Tenta extrair notas do PDF próximo à página da estrutura."""
+    import pdfplumber
+    import re
+    try:
+        with pdfplumber.open(pdf_path) as pdf:
+            # Procura na página do desenho e nas 3 seguintes
+            for p_idx in range(pagina_inicio - 1, min(pagina_inicio + 3, len(pdf.pages))):
+                page = pdf.pages[p_idx]
+                text = page.extract_text()
+                if not text: continue
+                if "Notas:" in text or "Nota:" in text:
+                    lines = text.split('\n')
+                    start_collecting = False
+                    found_notes = []
+                    for line in lines:
+                        if re.search(r'Nota(s)?:', line, re.IGNORECASE):
+                            start_collecting = True
+                            continue
+                        if start_collecting:
+                            match = re.match(r'^\s*(\d+)\.\s+(.*)', line)
+                            if match:
+                                found_notes.append(match.group(2).strip())
+                            elif found_notes and line.strip():
+                                if any(x in line for x in ["TÍTULO:", "CÓDIGO:", "APROVADOR:", "PÁG.:"]): continue
+                                found_notes[-1] = found_notes[-1] + " " + line.strip()
+                            elif found_notes and not line.strip():
+                                break
+                    if found_notes: return found_notes
+    except:
+        pass
+    return None
 
 # ─────────────────────────────────────────────────────────────────
 # LAYOUT
@@ -195,30 +761,12 @@ st.set_page_config(
     layout="wide",
 )
 
-# CSS para botões menores na sidebar
-st.markdown("""
-<style>
-section[data-testid="stSidebar"] button {
-    padding: 2px 6px !important;
-    font-size: 11px !important;
-    height: auto !important;
-    min-height: 0 !important;
-    line-height: 1.3 !important;
-    margin-bottom: 2px !important;
-}
-section[data-testid="stSidebar"] .stButton {
-    margin-bottom: 1px !important;
-}
-</style>
-""", unsafe_allow_html=True)
-
-# ── Sidebar ──────────────────────────────────────────────────────
+# Sidebar
 with st.sidebar:
     st.markdown("### ⚡ Estruturas Elétricas")
     st.caption("Neoenergia Elektro")
     st.divider()
 
-    # Filtro por norma
     norma_filtro = st.selectbox(
         "Filtrar por norma",
         ["Todas", "DIS-NOR-013", "DIS-NOR-014", "DIS-NOR-018"],
@@ -226,75 +774,65 @@ with st.sidebar:
     )
     st.divider()
 
-    # Selecionar estrutura ativa
     if "estrutura_ativa" not in st.session_state:
         st.session_state["estrutura_ativa"] = None
 
-    # Ordenar alfabeticamente
     codigos_ordenados = sorted(ESTRUTURAS.keys())
-
-    # Agrupar por norma
     normas = ["DIS-NOR-013", "DIS-NOR-014", "DIS-NOR-018"]
     for norma in normas:
-        if norma_filtro != "Todas" and norma_filtro != norma:
-            continue
-
+        if norma_filtro != "Todas" and norma_filtro != norma: continue
         cor = CORES_NORMA[norma]
-        st.markdown(
-            f'<div style="color:{cor};font-weight:bold;font-size:12px;'
-            f'margin-top:6px;margin-bottom:4px;">{norma}</div>',
-            unsafe_allow_html=True,
-        )
-
+        st.markdown(f'<div style="color:{cor};font-weight:bold;font-size:12px;margin-top:6px;margin-bottom:4px;">{norma}</div>', unsafe_allow_html=True)
         for codigo in codigos_ordenados:
             pag, titulo, n = ESTRUTURAS[codigo]
-            if n != norma:
-                continue
+            if n != norma: continue
             ativo = st.session_state["estrutura_ativa"] == codigo
             label = f"▶ {codigo}" if ativo else codigo
             if st.button(label, key=f"btn_{codigo}", use_container_width=True):
                 st.session_state["estrutura_ativa"] = codigo
                 st.rerun()
 
-# ── Área principal ───────────────────────────────────────────────
+# Área principal
 selecionada = st.session_state.get("estrutura_ativa")
 
 if not selecionada:
     st.title("⚡ Estruturas Elétricas — Neoenergia Elektro")
-    st.markdown("#### DIS-NOR-013 · DIS-NOR-014 · DIS-NOR-018")
-    st.info("👈 Selecione uma estrutura na lista à esquerda para visualizar o desenho e os materiais.")
-    st.markdown(f"**Total de estruturas disponíveis:** {len(ESTRUTURAS)}")
+    st.info("👈 Selecione uma estrutura na lista à esquerda.")
 else:
     pagina, titulo, norma = ESTRUTURAS[selecionada]
     cor = CORES_NORMA[norma]
 
-    # Cabeçalho
-    st.markdown(
-        f'<h2 style="color:{cor};">{titulo}</h2>',
-        unsafe_allow_html=True,
-    )
-    st.markdown(
-        f'<span style="background:{cor};color:white;padding:2px 10px;'
-        f'border-radius:4px;font-size:13px;">{norma}</span>',
-        unsafe_allow_html=True,
-    )
+    st.markdown(f'<h2 style="color:{cor};">{titulo}</h2>', unsafe_allow_html=True)
+    st.markdown(f'<span style="background:{cor};color:white;padding:2px 10px;border-radius:4px;font-size:13px;">{norma}</span>', unsafe_allow_html=True)
     st.write("")
 
-    # Layout em duas colunas
     col1, col2 = st.columns([2.5, 1])
 
-    # Coluna da esquerda (Imagem)
     with col1:
         try:
             img_bytes = extrair_imagem(PDF_PATH, pagina, DPI)
             st.image(img_bytes, use_container_width=True)
         except Exception as e:
-            st.error(
-                f"⚠️ Não foi possível carregar a imagem.\n\n"
-                f"Verifique se o arquivo `{PDF_PATH}` está na mesma pasta.\n\nErro: {e}"
-            )
+            st.error(f"⚠️ Erro ao carregar imagem: {e}")
 
-    # Coluna da direita (Materiais e Notas)
     with col2:
         st.markdown("### 📋 Relação de Materiais")
-        st.info("🔧 Tabela de materiais será adicionada em breve.")
+        # A tabela de materiais é complexa e requer uma extração mais detalhada do PDF.
+        # Por enquanto, consulte o PDF completo para a relação de materiais.
+        
+        # Exibição de Notas
+        st.markdown("### 📌 Notas")
+        
+        # 1. Tenta pegar do banco estático
+        notas = NOTAS_ESTRUTURAS.get(selecionada)
+        
+        # 2. Se não tiver no banco, tenta extrair dinamicamente (com cache opcional)
+        if not notas:
+            with st.spinner("Buscando notas no PDF..."):
+                notas = extrair_notas_dinamicamente(PDF_PATH, pagina)
+        
+        if notas:
+            for i, nota in enumerate(notas, 1):
+                st.markdown(f"**{i}.** {nota}")
+        else:
+            st.write("Nenhuma nota encontrada para esta estrutura.")
