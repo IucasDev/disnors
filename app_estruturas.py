@@ -5,7 +5,7 @@ DIS-NOR-013 | DIS-NOR-014 | DIS-NOR-018
 Para rodar: streamlit run app_estruturas_v2.py
 """
 
-import io, subprocess, tempfile, os, glob
+import io, subprocess, tempfile, os, glob, json, re
 import streamlit as st
 from PIL import Image
 
@@ -720,6 +720,59 @@ def extrair_imagem(pdf_path: str, pagina: int, dpi: int = 150) -> bytes:
     img.save(buf, format="PNG")
     return buf.getvalue()
 
+@st.cache_data
+def load_normative_search_index():
+    """Carrega o índice de busca dos normativos em cache."""
+    json_path = "normatives_text.json"
+    if os.path.exists(json_path):
+        try:
+            with open(json_path, "r", encoding="utf-8") as f:
+                return json.load(f)
+        except:
+            return None
+    return None
+
+def search_keyword_in_normatives(keyword, normative_data, context_lines=2):
+    """Busca uma palavra-chave nos textos dos normativos e retorna referências."""
+    results = []
+    normalized_keyword = re.escape(keyword.upper())
+    
+    for doc_name, pages_data in normative_data.items():
+        for page_info in pages_data:
+            page_content = page_info["content"]
+            page_number = page_info["page"]
+            lines = page_content.split('\n')
+            
+            for i, line in enumerate(lines):
+                if re.search(normalized_keyword, line, re.IGNORECASE):
+                    start_index = max(0, i - context_lines)
+                    end_index = min(len(lines), i + context_lines + 1)
+                    
+                    context_text = []
+                    for j in range(start_index, end_index):
+                        context_text.append(lines[j].strip())
+                    
+                    clean_context = " ".join(filter(None, context_text))
+                    sentences = re.findall(r'[^.!?]*?%s[^.!?]*?[.!?]' % normalized_keyword, clean_context, re.IGNORECASE)
+                    
+                    for sentence in sentences:
+                        results.append({
+                            "document": doc_name,
+                            "page": page_number,
+                            "text": sentence.strip()
+                        })
+    
+    # Remove duplicatas
+    unique_results = []
+    seen = set()
+    for result in results:
+        key = (result["document"], result["page"], result["text"])
+        if key not in seen:
+            seen.add(key)
+            unique_results.append(result)
+    
+    return unique_results
+
 def extrair_notas_dinamicamente(pdf_path, pagina_inicio):
     """Tenta extrair notas do PDF próximo à página da estrutura."""
     import pdfplumber
@@ -837,3 +890,42 @@ else:
                 st.markdown(f"**{i}.** {nota}")
         else:
             st.write("Nenhuma nota encontrada para esta estrutura.")
+
+    # Seção de Referências Adicionais nos Normativos
+    st.divider()
+    st.markdown("### 📚 Referências Adicionais nos Normativos")
+    
+    # Carrega o índice de busca dos normativos
+    normative_data = load_normative_search_index()
+    
+    if normative_data:
+        # Extrai o código da estrutura para busca
+        search_keyword = selecionada
+        
+        # Busca referências nos normativos
+        with st.spinner(f"Buscando referências para '{search_keyword}' nos normativos..."):
+            references = search_keyword_in_normatives(search_keyword, normative_data)
+        
+        if references:
+            st.success(f"✓ Encontradas {len(references)} referências")
+            
+            # Agrupa referências por documento
+            refs_by_doc = {}
+            for ref in references:
+                doc = ref["document"]
+                if doc not in refs_by_doc:
+                    refs_by_doc[doc] = []
+                refs_by_doc[doc].append(ref)
+            
+            # Exibe referências agrupadas por documento
+            for doc_name in sorted(refs_by_doc.keys()):
+                with st.expander(f"📄 {doc_name}"):
+                    for ref in refs_by_doc[doc_name][:5]:  # Limita a 5 referências por documento
+                        st.markdown(f"**Página {ref['page']}:** {ref['text']}")
+                    
+                    if len(refs_by_doc[doc_name]) > 5:
+                        st.info(f"... e mais {len(refs_by_doc[doc_name]) - 5} referências")
+        else:
+            st.info(f"Nenhuma referência encontrada para '{search_keyword}' nos normativos.")
+    else:
+        st.warning("⚠️ Índice de normativos não disponível. Certifique-se de que o arquivo 'normatives_text.json' está no mesmo diretório.")
