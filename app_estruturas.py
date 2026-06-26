@@ -686,6 +686,7 @@ NOTAS_ESTRUTURAS = {
         "A estrutura tipo U4 é utilizada em redes convencionais;",
         "Os postes DT (ph) e circular (pa) devem ser definidos conforme item 6.11 desta especificação."
     ],
+}
 
 CORES_NORMA = {
     "DIS-NOR-013": "#1e6b3c",
