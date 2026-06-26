@@ -12,6 +12,9 @@ import pdfplumber
 import re
 from pathlib import Path
 
+PDF_PATH = Path(__file__).parent / "disnors" / "Estruturas_DIS-NOR-013_014_018.pdf"
+DPI = 150
+
 # ─────────────────────────────────────────────────────────────────
 # MAPA DE ESTRUTURAS  {código_exibido: (página_no_combinado, título_completo, norma)}
 # ─────────────────────────────────────────────────────────────────
