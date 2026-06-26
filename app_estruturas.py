@@ -281,57 +281,20 @@ else:
     st.write("")
 
     # Layout em duas colunas
-col1, col2 = st.columns([2.5, 1])
+    col1, col2 = st.columns([2.5, 1])
 
-# Coluna da esquerda (Imagem)
-with col1:
-    try:
-        img_bytes = extrair_imagem(PDF_PATH, pagina, DPI)
-        st.image(img_bytes, use_container_width=True)
-    except Exception as e:
-        st.error(
-            f"⚠️ Não foi possível carregar a imagem.\n\n"
-            f"Verifique se o arquivo `{PDF_PATH}` está na mesma pasta.\n\nErro: {e}"
-        )
+    # Coluna da esquerda (Imagem)
+    with col1:
+        try:
+            img_bytes = extrair_imagem(PDF_PATH, pagina, DPI)
+            st.image(img_bytes, use_container_width=True)
+        except Exception as e:
+            st.error(
+                f"⚠️ Não foi possível carregar a imagem.\n\n"
+                f"Verifique se o arquivo `{PDF_PATH}` está na mesma pasta.\n\nErro: {e}"
+            )
 
-# Coluna da direita (Materiais e Notas)
-with col2:
-    st.markdown("### 📋 Relação de Materiais")
-    st.info("🔧 Tabela de materiais será adicionada em breve.")
-
-    st.markdown("### 📌 Notas")
-    st.info("📝 Notas serão adicionadas em breve.")
-
-st.caption(f"Página {pagina} do arquivo PDF combinado.")
-def extrair_dados_pdf(pdf_path, pagina):
-    with pdfplumber.open(pdf_path) as pdf:
-        page = pdf.pages[pagina - 1]
-        texto = page.extract_text()
-
-        # -------------------------
-        # EXTRAIR NOTAS
-        # -------------------------
-        notas = []
-        if texto:
-            if "Notas" in texto:
-                bloco_notas = texto.split("Notas")[-1]
-
-                linhas = bloco_notas.split("\n")
-                for linha in linhas:
-                    linha = linha.strip()
-                    if linha and not linha.lower().startswith("página"):
-                        notas.append(linha)
-
-        # -------------------------
-        # EXTRAIR TABELAS (MATERIAIS)
-        # -------------------------
-        tabelas = page.extract_tables()
-
-        materiais = []
-        if tabelas:
-            for tabela in tabelas:
-                for row in tabela:
-                    if row and len(row) >= 3:
-                        materiais.append(row[:3])
-
-        return materiais, notas
+    # Coluna da direita (Materiais e Notas)
+    with col2:
+        st.markdown("### 📋 Relação de Materiais")
+        st.info("🔧 Tabela de materiais será adicionada em breve.")
